@@ -55,10 +55,9 @@ happened; these entries are the toolkit's own timeline.
 All four entries are graded. Keep every heading below, and fill each
 one in the week it belongs to.
 
-**Unit 5: [one line on the tool work]**
+**Unit 5: Installed the issue-scout and wrote a repo-pinned SQL-tooling search strategy**
 
-[2-4 sentences: what you built (the scout, your strategy), what broke
-or fell short, what changed because of it.]
+I installed the scout over my Unit 1 skill and wrote a search strategy from my fit profile (SQL tooling written in Python). My first draft query, "sql" plus "good first issue" plus Python, returned mostly hobby repos, so I tested every query in the terminal and switched to bug-label queries pinned to sqlfluff, sqlglot, sqlfmt, SQLMesh and dbt-utils. The first scan gave 1 accept and 4 rejects; four of the five failed "Nobody is already working it" on an open PR or an unanswered claim comment, because my ranking put `has-repro` issues first and those were the ones others had already picked up. I reordered the ranking to fewest comments first, raised the per-repo cap from 2 to 3, and added a "Not already fixed" check to the rubric after the only accepted issue turned out to have a merged PR that may already fix it.
 
 **Unit 6: [one line on the tool work]**
 

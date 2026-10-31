@@ -173,29 +173,32 @@ One file: `frontend/jwst-frontend/src/components/WcsGridOverlay.test.tsx`. The c
 
 **Analysis**
 
-[Your analysis of the root cause: what is causing the issue, traced
-to the files and functions involved.]
+The stub is `MockResizeObserver` in `frontend/jwst-frontend/src/components/WcsGridOverlay.test.tsx`. Its constructor is `constructor(_callback: (entries: any[]) => void) {}` at line 13, and line 12 silences `@typescript-eslint/no-explicit-any`, which `eslint.config.js:108` sets to `warn`. The suppression is load-bearing: with inline comments ignored, ESLint warns at 13:36. The cause is a hand-written loose callback type where TypeScript already ships `ResizeObserverCallback` (`lib.dom.d.ts:43031`; `tsconfig.json` includes `DOM`).
+
+My first plan was the issue's one-liner in one file. Running it showed `npm run lint` then fails with `'ResizeObserverCallback' is not defined  no-undef`, because `eslint.config.js` hand-lists the allowed browser globals (`ResizeObserver: 'readonly'` at line 73) and does not list the callback type. tsc, build, tests and prettier were fine; only `no-undef` objected.
 
 **Proposed Solution**
 
-[High-level description of your fix approach, and what you are
-deliberately NOT changing.]
+Two files in one commit: type the constructor parameter as `ResizeObserverCallback` and delete the `eslint-disable-next-line` line; add `ResizeObserverCallback: 'readonly',` under `ResizeObserver: 'readonly',` in the ESLint globals, which is the config's own idiom for DOM names. I considered `ConstructorParameters<typeof ResizeObserver>[0]` (one file, no config change) and rejected it because it is harder to read and is not the type the issue asks for; the PR will say so, so the maintainer can ask for it instead.
+
+I am not changing the component `WcsGridOverlay.tsx`, the mock's `observe`/`unobserve`/`disconnect`, `vi.stubGlobal`, any other `no-explicit-any` suppression in the test files (this is the only `any[]`), any other global, docs, or dependencies.
 
 **Implementation Plan**
 
-1. [Modify file X to do Y]
-2. [Add or change Z]
-3. [Update tests]
+1. Branch `test/1396-type-resizeobserver-stub` from `main`, using the repo's `test/` prefix.
+2. Change the stub's constructor type and remove the suppression; add the globals entry in `eslint.config.js`.
+3. From `frontend/jwst-frontend` on Node 22 run: the `any[]` grep, `eslint --no-inline-config` on the file, `npm run lint`, `tsc --noEmit`, the one test file, `npm test`, `npm run build`, `npm run format:check`, `git diff --stat`.
+4. One commit: `test: type the ResizeObserver stub in WcsGridOverlay.test.tsx`.
+5. Open the PR from my fork with the repo's template (`Closes #1396`), checked with `./scripts/validate-pr.sh`.
 
-[Record deviations here as they happen: what changed mid-build and
-why. A recorded deviation is honest work; silent drift is not.]
+**Deviation (recorded):** the plan changed from one file to two after the `no-undef` result above. The PR description will say so.
 
 **Toolkit**
 
-- Tool:
-- What it produced:
-- Difficulties:
-- What changed:
+- Tool: plan-check, run on `plan.md` and a draft plan comment (`plan-comment.md`, not posted), after the first plan turned out wrong.
+- What it produced: accept, all five checks passing, on the rewritten two-file plan. Its notes were that there is no posted repro comment for it to check the diagnosis against, and that the branch was already built. It also gave three voice notes on my comment: show the `no-undef` line as an artifact, name what I am leaving alone, and offer the `ConstructorParameters` alternative as a clear ask.
+- Difficulties: the earlier plan-check (accept 5/5) was on a plan that fails lint, because a plan can be internally consistent and still wrong; only running the change found that. It also treats a code-quality issue as if a repro comment should exist.
+- What changed: I rewrote the plan around the `no-undef` result, applied the three comment notes, and recorded the one-file to two-file change as a deviation.
 
 ---
 

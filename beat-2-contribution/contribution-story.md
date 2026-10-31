@@ -100,26 +100,26 @@ My patches were the "Not already fixed" check, the reordered ranking, and the co
 
 **Problem Description**
 
-[In your own words, what is broken or missing?]
+The test for the `WcsGridOverlay` component replaces the browser's `ResizeObserver` with a small fake class, because jsdom does not have one. The fake's constructor takes a callback typed as `(entries: any[]) => void`, and the repo's ESLint rule against `any` is silenced with an `eslint-disable` comment so lint stays clean. Nothing is broken at runtime. The stub is just loosely typed and needs a suppression it should not need, because TypeScript already ships the exact type for this callback.
 
 **Expected Behavior**
 
-[What should happen?]
+The stub's constructor is typed with the real DOM type, `ResizeObserverCallback`, and the `eslint-disable` line is gone. Lint, typecheck and the test all still pass.
 
 **Current Behavior**
 
-[What actually happens?]
+The constructor is `constructor(_callback: (entries: any[]) => void) {}` at `WcsGridOverlay.test.tsx:13`, with the suppression on line 12. Lint passes only because of that comment: with inline comments ignored, ESLint reports `Unexpected any` (a warning, since the repo sets `no-explicit-any` to `warn`). Typecheck and all tests pass today.
 
 **Affected Components**
 
-[Which parts of the codebase are involved?]
+One file: `frontend/jwst-frontend/src/components/WcsGridOverlay.test.tsx`. The component it tests, `WcsGridOverlay.tsx`, only calls `new ResizeObserver(() => ...)` and is not touched. Other test files have their own `no-explicit-any` suppressions, but this is the only `any[]` in the test files, so they are out of scope.
 
 **Toolkit**
 
-- Tool:
-- What it produced:
-- Difficulties:
-- What changed:
+- Tool: Claude Code, used to read the issue, the stub, the ESLint config and the TypeScript DOM types, and to run grep and the repo's own commands.
+- What it produced: the facts above (line numbers, the `warn` setting at `eslint.config.js:108`, the `ResizeObserverCallback` definition) and a first draft of these four fields, which I then edited.
+- Difficulties: the issue calls this a lint problem, but lint exits 0 today, so "current behavior" had to be stated as a suppressed warning rather than a failure. I did not want to overstate it.
+- What changed: I described the problem as a code-quality issue and kept the "nothing is broken at runtime" statement explicit.
 
 ---
 
@@ -127,31 +127,45 @@ My patches were the "Not already fixed" check, the reordered ranking, and the co
 
 **Environment Setup**
 
-[What a stranger would need to stand this up: your operating system,
-the relevant versions (language, runtime, package manager, the project
-itself), and how you set the project up. Then the challenges you faced
-and how you solved them, or that none came up.]
+- macOS 26.5.2 (arm64), Node v22.13.1 (CI uses Node 22), npm 10.9.2, TypeScript 6.0.3, vitest 4.1.11, ESLint 10.12.0.
+- Repo: my fork https://github.com/smtanaka00/jwst-data-analysis, unmodified `main` at `08629875175f57b174a97c6d42ff89967ef0c68e`. That is newer than the `279a62a` the issue cites; the stub is unchanged.
+- Setup: `cd frontend/jwst-frontend && npm ci --ignore-scripts`. Only the frontend is needed. The repo's contributing guide starts everything with Docker, but a test-only change does not need it, and CI runs the frontend jobs without it.
+- Challenges: my default Node is v18, so I put Node 22 first on PATH. My AI tooling's permission check blocked a plain `npm ci` because it runs third-party install scripts, so I installed with `--ignore-scripts`; every check below still ran.
 
 **Steps to Reproduce**
 
-1. [Step 1]
-2. [Step 2]
-3. [Observed result]
+1. From `frontend/jwst-frontend`, find `any[]` in test files: `grep -rn 'any\[\]' src --include='*.test.tsx' --include='*.test.ts'`
+2. Lint the file as the repo does: `npx eslint src/components/WcsGridOverlay.test.tsx`
+3. Lint it again, ignoring inline comments: `npx eslint --no-inline-config src/components/WcsGridOverlay.test.tsx`
+4. Confirm the DOM type exists: `grep -n "interface ResizeObserverCallback" -A2 node_modules/typescript/lib/lib.dom.d.ts`
+5. Run the baseline: `npx tsc -p tsconfig.json --noEmit`, `npx vitest run src/components/WcsGridOverlay.test.tsx`, `npm run lint`, `npm test`
+6. Observed: one `any[]` hit (the stub, line 13); lint exits 0 with no output; with the suppression ignored ESLint reports a warning on line 13; `ResizeObserverCallback` is `(entries: ResizeObserverEntry[], observer: ResizeObserver): void`.
 
 **Reproduction Evidence**
 
-- **Commit showing reproduction:** [link to commit in your fork]
-- **Screenshots/logs:** [if applicable]
-- **My findings:** [what you discovered during reproduction; an
-  honest, evidenced cannot-reproduce that led you to re-pick or ask
-  the maintainer belongs here and costs you nothing]
+- **Commit showing reproduction:** none (nothing to commit; this is a baseline on unmodified `main`)
+- **Screenshots/logs:**
+  ```text
+  $ grep -rn 'any\[\]' src --include='*.test.tsx' --include='*.test.ts'
+  src/components/WcsGridOverlay.test.tsx:13:  constructor(_callback: (entries: any[]) => void) {}
+
+  $ npx eslint --no-inline-config src/components/WcsGridOverlay.test.tsx
+  src/components/WcsGridOverlay.test.tsx
+    13:36  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  ✖ 1 problem (0 errors, 1 warning)
+
+  lib.dom.d.ts:43031: interface ResizeObserverCallback {
+  lib.dom.d.ts:43032:     (entries: ResizeObserverEntry[], observer: ResizeObserver): void;
+  ```
+  Baseline on `main`: `tsc --noEmit` exit 0; the one test file 11 passed; `npm run lint` exit 0 with 103 warnings and 0 errors, none from this file; `npm test` 138 files, 1819 tests passed.
+- **My findings:** this is a code-quality issue, so there is no failing check to show. What I can show is that the `eslint-disable` is load-bearing (the warning appears without it), that the `any[]` is the only one in the test files, and that the type the issue asks for is the real DOM type and is available without an import. I have not yet applied the change, so I have not shown that lint, typecheck and the test still pass with `ResizeObserverCallback`; that before/after check belongs to the build step.
 
 **Toolkit**
 
-- Tool:
-- What it produced:
-- Difficulties:
-- What changed:
+- Tool: repro-check, run on my claim and my repro report together, with the report drafted in `repro-draft.md` first.
+- What it produced: an accept, with all seven checks passing. It confirmed the environment was pinned to a commit and noted that the commit differs from the one in the issue. It also suggested my claim's first step could name reproducing before editing.
+- Difficulties: its disclosure check searched only CONTRIBUTING.md, not AGENTS.md, and earlier on my claim alone it said the repo had no PR template when it has one. Its checks also assume a failing behavior, so I had to state clearly that the "failure" here is a suppressed warning.
+- What changed: I wrote the "Not shown" limit into the report instead of claiming a before/after I had not run, and I recorded the checker's template misread in my scout notes.
 
 ---
 

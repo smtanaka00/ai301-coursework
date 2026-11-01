@@ -134,7 +134,7 @@ One file: `frontend/jwst-frontend/src/components/WcsGridOverlay.test.tsx`. The c
 
 **Steps to Reproduce**
 
-1. From `frontend/jwst-frontend`, find `any[]` in test files: `grep -rn 'any\[\]' src --include='*.test.tsx' --include='*.test.ts'`
+1. From `frontend/jwst-frontend`, find `any[]` in test files: `grep -rn 'any[]' src --include='*.test.tsx' --include='*.test.ts'`
 2. Lint the file as the repo does: `npx eslint src/components/WcsGridOverlay.test.tsx`
 3. Lint it again, ignoring inline comments: `npx eslint --no-inline-config src/components/WcsGridOverlay.test.tsx`
 4. Confirm the DOM type exists: `grep -n "interface ResizeObserverCallback" -A2 node_modules/typescript/lib/lib.dom.d.ts`
@@ -146,7 +146,7 @@ One file: `frontend/jwst-frontend/src/components/WcsGridOverlay.test.tsx`. The c
 - **Commit showing reproduction:** none (nothing to commit; this is a baseline on unmodified `main`)
 - **Screenshots/logs:**
   ```text
-  $ grep -rn 'any\[\]' src --include='*.test.tsx' --include='*.test.ts'
+  $ grep -rn 'any[]' src --include='*.test.tsx' --include='*.test.ts'
   src/components/WcsGridOverlay.test.tsx:13:  constructor(_callback: (entries: any[]) => void) {}
 
   $ npx eslint --no-inline-config src/components/WcsGridOverlay.test.tsx
@@ -204,39 +204,50 @@ I am not changing the component `WcsGridOverlay.tsx`, the mock's `observe`/`unob
 
 ## Testing Strategy
 
-[What observable checks prove the fix: your reproduction steps re-run
-against the built change (before and after), and the repo's own test
-suite or checks with the outcome shown. "Tests pass" with nothing
-observable named is not a strategy.]
+The fix is a type annotation in a test stub plus one lint-config entry, so there is no behaviour to assert and I did not add a unit test. The observable checks are my reproduction steps re-run on the branch, then the repo's own checks, all from `frontend/jwst-frontend` on Node 22. Full output is in my local `test_evidence.md` and in the PR.
+
+| Check | Before (`main`) | After (branch) |
+|---|---|---|
+| `grep -rn 'any[]'` over the test files | 1 hit (the stub, line 13) | no output |
+| `npx eslint --no-inline-config` on the test file | warning at 13:36 | no output |
+| `npm run lint` | exit 0, 103 warnings | exit 0, 0 errors, 103 warnings |
+| `npx tsc -p tsconfig.json --noEmit` | exit 0 | exit 0 |
+| `WcsGridOverlay.test.tsx` | 11 passed | 11 passed |
+| `npm test` | 138 files, 1819 tests | 138 files, 1819 tests |
+| `npm run build`, `npm run format:check` | pass | pass |
+| `git diff --stat` | n/a | 2 files, +2 / -2 |
+
+What fails without the change: the `--no-inline-config` warning and the `any[]` hit before it, and, with only the type swapped and the ESLint globals unchanged, `npm run lint` fails with `'ResizeObserverCallback' is not defined  no-undef`. I ran all of these myself. The repo's CI also runs the same lint, format, build and test commands, and the ship-gate runs them from my manifest before the PR opens.
 
 **Toolkit**
 
-- Tool:
-- What it produced:
-- Difficulties:
-- What changed:
+- Tool: Claude Code running the repo's own commands, plus the ship-gate manifest that reruns them in a clean shell.
+- What it produced: the before and after table above and `test_evidence.md`, with every number from a real run. The manifest's four checks (lint, format, build, test) all exited 0 in a clean `env -i` shell on the fixed branch.
+- Difficulties: a plain "tests pass" proves nothing here because the tests passed before the change too, so the useful evidence was the `--no-inline-config` lint and the `no-undef` failure. My default Node is 18 and the repo's CI uses 22, so every command needs Node 22 first on PATH.
+- What changed: I stated plainly that there is no new unit test and why, and I put the Node 22 prefix into every manifest command.
 
 ---
 
 ## Implementation Notes
 
-[A running log, added to as you work. Date each entry. What you
-built, decisions you made when you made them, wrong turns included.]
+**2026-10-26**
 
-**[Date]**
+Claimed #1396 after dropping SQLMesh #5770, which was too big for the time left. Read CONTRIBUTING.md, AGENTS.md, the PR template and the CI workflows. The repo has no written AI policy and no agent credit rule; the PR body is validated by CI, so I use the full template and `Closes #1396`.
 
-[Entry]
+**2026-10-31**
 
-**[Date]**
+Reproduced on `main`: lint passes only because of the `eslint-disable`; with inline comments ignored it warns at 13:36. Wrote the first plan as the issue says (swap the type, delete the comment, one file) and passed plan-check.
 
-[Entry]
+Built it on `test/1396-type-resizeobserver-stub` and ran lint: `'ResizeObserverCallback' is not defined  no-undef`. The first plan was wrong. `eslint.config.js` lists browser globals by hand and has `ResizeObserver` but not the callback type. I tried two fixes: add the global to the config (two files), or `ConstructorParameters<typeof ResizeObserver>[0]` (one file). Both gave lint 0 errors, tsc 0, 11 tests, format ok. I chose the config entry because it keeps the type the issue asks for and matches how the config lists other DOM names, and I will offer the other form to the maintainer in the PR. I had drafted a comment for the issue reporting this, but chose not to post it and put the question in the PR instead.
+
+Committed as `44178b5`, "test: type the ResizeObserver stub in WcsGridOverlay.test.tsx", with no co-author trailer. Rewrote `plan.md` for two files and re-ran plan-check (accept). Installed the ship-gate and wrote the manifest. The hook test showed the ship-gate stop on `gh pr create --help`. Wrote the PR description from the template; the repo's `validate-pr.sh` passes and my voice guard passes.
 
 **Toolkit**
 
-- Tool:
-- What it produced:
-- Difficulties:
-- What changed:
+- Tool: Claude Code for the edit and the checks, the ship-gate manifest, and a dated log kept in a local plan file.
+- What it produced: the two-file commit, the evidence, and the dated entries above, including the wrong first plan.
+- Difficulties: the first plan-check accepted a plan that fails lint; only running the change showed it. The Node 18 versus 22 default also nearly made the manifest commands fail in a clean shell.
+- What changed: I rewrote the plan and recorded the deviation instead of letting the diff drift from the plan, and I wrote the manifest commands the way a clean shell runs them.
 
 ---
 

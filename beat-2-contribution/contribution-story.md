@@ -66,10 +66,9 @@ I installed the voice guard and wired its hook into my global settings, and the 
 
 The ship-gate runs my manifest's checks (lint, format, build and tests, each in a clean shell) and then my pr-precheck on the branch, plan, evidence and description. On my branch it passed all four repo checks and all four pr-precheck checks, and its notes made me soften a Risk line that claimed more than the evidence showed and turn one run-on test sentence into bullets. What fought me was Node: my default is 18 and CI uses 22, so every manifest row needed a Node 22 prefix to work in a clean shell, and the hook also stopped one of my own shell commands because the command text mentioned a PR creation. The plan also changed because of the work around it: my first plan, which plan-check accepted, failed lint with `no-undef`, so I rewrote it as a two-file fix and said so in the PR.
 
-**Unit 8: [one line on the tool work]**
+**Unit 8: Installed the PR monitor and wrote a playbook from this repo's thin outside-contributor history**
 
-[2-4 sentences: the PR-monitor and your playbook. What it read, what it
-drafted, what you did with the draft.]
+The monitor read my PR (one passing check, no comments, 14 minutes old) and drafted a wait note instead of a nudge: my playbook says to nudge only after 7 quiet days, and it counted 0 of 7 and gave the date the threshold is met (2026-11-15). I did not send anything, because there was nothing to post, and the draft is the correct call. What fell short was the evidence for my staleness rule: this repo has 99 Dependabot PRs and the maintainer's own, and I found only one merged outside PR (#1963: a maintainer comment in about 30 minutes, merged in about 18 hours) plus one open one with no reply after 11 hours, so my 7-day number rests on a sample of one and the playbook says so. I wrote the playbook to name the one question I would ask the maintainer (globals entry or `ConstructorParameters`) so a future nudge carries something new, and I will rerun the monitor whenever the thread changes.
 
 ---
 
@@ -275,25 +274,24 @@ Committed as `44178b5`, "test: type the ResizeObserver stub in WcsGridOverlay.te
 
 **Technical Skills Gained**
 
-[What you learned technically, named concretely.]
+I learned how ESLint's flat config treats browser globals: `no-undef` only knows the names listed in `eslint.config.js`, so using a DOM *type* such as `ResizeObserverCallback` can fail lint even when TypeScript accepts it, and `eslint --no-inline-config` shows what a suppression is hiding. I also learned to run a repo's checks the way CI does (Node 22, clean shell, `cd` into the package) and to write them as commands a hook can run, and how a CI-validated PR template (`validate-pr.js`) shapes a description.
 
 **Challenges Overcome**
 
-[What was hard and how you solved it; point at the real events, the
-Toolkit blocks above are full of them.]
+The hardest part was the plan being wrong while every check said it was right: plan-check accepted a one-file plan that failed lint as soon as I built it. I found it by running the change, recorded the deviation, tried two fixes, and rewrote the plan around the result. Earlier, three picks closed before I could claim them and my first claim broke my own voice rule; I replaced the comment and now check every draft before posting.
 
 **What I'd Do Differently Next Time**
 
-[Reflection on your process.]
+I would run the literal fix and the repo's lint before writing the plan, so the plan starts from observed behaviour instead of the issue's description. I would also claim sooner and pick a second backup issue while the first was still open, and I would look for outside-contributor PRs in the repo before choosing it, since this one had almost none to learn review timing from.
 
 ---
 
 ## Resources Used
 
-[What actually helped, not a reading list. List things this story
-already shows you using: the doc you followed to set the environment
-up, the thread that explained the bug, the person who answered you.
-One real entry beats ten plausible ones.]
-
-- [Link to documentation that helped]
-- [Discussion, issue, or post that helped]
+- Issue #1396 (https://github.com/Snoww3d/jwst-data-analysis/issues/1396): gave the exact change and the `any[]` grep to run.
+- The repo's `CONTRIBUTING.md`, `.github/PULL_REQUEST_TEMPLATE.md` and `.github/scripts/validate-pr.js`: told me the branch prefix, the conventional title and every PR section CI checks; I ran `scripts/validate-pr.sh` before opening.
+- `.github/workflows/ci.yml`: the source for the lint, format, build and test commands in my manifest and for Node 22.
+- `frontend/jwst-frontend/eslint.config.js`: showed the hand-listed globals that caused the `no-undef` failure.
+- TypeScript's `lib.dom.d.ts` (`ResizeObserverCallback`, line 43031 in my install): confirmed the DOM type exists without an import.
+- Unit 7 `INSTALL.md` (ship-gate) and Unit 8 `INSTALL.md` (PR monitor): the steps I followed and the stops I looked up.
+- PR #1963 by an outside contributor, the only one I found: the evidence behind my playbook's review-timing rule.

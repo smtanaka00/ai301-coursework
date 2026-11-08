@@ -11,7 +11,7 @@ files and no evidence uploads are part of Assignment 5.
 **Student:** Tanaka Mbavarira
 **GitHub Username:** smtanaka00
 **Issue:** https://github.com/Snoww3d/jwst-data-analysis/issues/1396
-**Pull Request:** [GitHub PR link, once opened]
+**Pull Request:** https://github.com/Snoww3d/jwst-data-analysis/pull/2179
 
 One repository, built across units 5 to 8, telling the whole story of your real
 contribution. Fill it as you work, not at the end — the sections below ask for evidence that
@@ -62,10 +62,9 @@ I installed the scout over my Unit 1 skill and wrote a search strategy from my f
 
 I installed the voice guard and wired its hook into my global settings, and the wiring test stopped a claim that promised a PR date, as it should. Two things fell short: my first claim on #1396 went up before the hook was live and broke my own rule ("a claim names my first step, never a fix or a date"), and the guard stops with "the claude CLI is not on PATH" in my setup until the hook command adds the VS Code extension's bundled `claude` folder to PATH. I replaced the live comment with a version that passes, fixed the hook's PATH, and now run the guard on every draft before I post it. The memory file (`CLAUDE.local.md`, 44 lines, importing the repo's `AGENTS.md`) holds the PR-body rules that CI enforces, the exact one-line edit, and the working commands, and it is excluded from git through `.git/info/exclude`; I wrote it from the repo's docs this week and have not yet seen it save a session's worth of orientation.
 
-**Unit 7: [one line on the tool work]**
+**Unit 7: Installed the ship-gate, wrote a four-check manifest for the JWST frontend, and used it to open the PR**
 
-[2-4 sentences: the ship-gate and your gate manifest. What it produced
-on your real branch, what fought you, what changed because of it.]
+The ship-gate runs my manifest's checks (lint, format, build and tests, each in a clean shell) and then my pr-precheck on the branch, plan, evidence and description. On my branch it passed all four repo checks and all four pr-precheck checks, and its notes made me soften a Risk line that claimed more than the evidence showed and turn one run-on test sentence into bullets. What fought me was Node: my default is 18 and CI uses 22, so every manifest row needed a Node 22 prefix to work in a clean shell, and the hook also stopped one of my own shell commands because the command text mentioned a PR creation. The plan also changed because of the work around it: my first plan, which plan-check accepted, failed lint with `no-undef`, so I rewrote it as a two-file fix and said so in the PR.
 
 **Unit 8: [one line on the tool work]**
 
@@ -253,27 +252,22 @@ Committed as `44178b5`, "test: type the ResizeObserver stub in WcsGridOverlay.te
 
 ## Pull Request
 
-**PR Link:** [GitHub PR URL when opened]
+**PR Link:** https://github.com/Snoww3d/jwst-data-analysis/pull/2179
 
-**PR Description:** [what the PR says; much of the content above
-adapts into it]
+**PR Description:** The PR types the `MockResizeObserver` constructor in `WcsGridOverlay.test.tsx` as `ResizeObserverCallback` and removes the `eslint-disable`, as issue #1396 asks, and adds `ResizeObserverCallback: 'readonly'` to the ESLint globals because the one-line fix otherwise fails lint with `no-undef`. It says the plan changed from one file to two, offers `ConstructorParameters<typeof ResizeObserver>[0]` as the alternative if the maintainer prefers no config change, lists before and after output (the `any[]` grep, `--no-inline-config` lint, lint, tsc, build, tests, format), and uses the repo's full template with `Closes #1396`. Notes for Reviewers discloses that Claude Code helped me read the repo, trace the lint failure, run the checks and draft the description.
 
 **Maintainer Feedback:**
 
-- [Date]: [feedback received, or "none yet"; silence is a normal
-  state and costs you nothing]
-- [Date]: [how you addressed it]
+- 2026-11-08: none yet. The `Validate PR Standards` check passed on opening.
 
-**Status:** [Awaiting review / Iterating / Merged / Closed. The
-status is a fact you record, never a grade: the PR is graded as
-opened.]
+**Status:** Awaiting review
 
 **Toolkit**
 
-- Tool:
-- What it produced:
-- Difficulties:
-- What changed:
+- Tool: the ship-gate, run by hand and then by the hook when the PR opened through Claude Code.
+- What it produced: PASS on my branch (four repo checks, four pr-precheck checks), and the PR opened on `Snoww3d/jwst-data-analysis` with CI's PR standards check passing.
+- Difficulties: the repo's `gh repo set-default` had to point at the original repo or the PR would land on my fork, and the first gate run covered a description I then edited, so I ran it again on the final text.
+- What changed: I re-ran the gate on the final text before opening, and I checked the printed PR link points at the original repo with my fork as the head.
 
 ---
 
